@@ -2,7 +2,7 @@
 
 Учебный проект с двумя вариантами интерфейса:
 - консольное приложение на C (`bank_reverse_task.c`)
-- красивый графический веб-интерфейс (`bank_gui.html` + `bank_gui.css` + `bank_gui.js`)
+- графический веб-интерфейс (`bank_gui.html` + `bank_gui.css` + `bank_gui.js`)
 
 ## Функционал
 - Перевод
@@ -10,21 +10,37 @@
 - Сколько денег на счету
 - История операций
 
-## Вариант 1: C-консоль
-### Сборка
+## Сборка C-версии
+### Linux binary
+```bash
+make linux
+```
+или напрямую:
 ```bash
 gcc -std=c11 -O2 -Wall -Wextra -pedantic bank_reverse_task.c -o ybank_task
 ```
 
-### Запуск
+### Windows `.exe`
+```bash
+make win-exe
+```
+
+Альтернатива:
+```bash
+./build_windows_exe.sh
+```
+
+> Для реального `.exe` нужен MinGW-w64 (`x86_64-w64-mingw32-gcc`).
+
+## Запуск
 ```bash
 ./ybank_task
 ```
 
-## Вариант 2: графический интерфейс
+## Веб-интерфейс
 Откройте `bank_gui.html` в браузере.
 
-Если хотите поднять локальный сервер:
+Или через локальный сервер:
 ```bash
 python3 -m http.server 8080
 ```
