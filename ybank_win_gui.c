@@ -12,8 +12,11 @@
 #define ID_LBL_BALANCE       106
 #define ID_LIST_HISTORY      107
 #define ID_LBL_SECRET        108
-#define ID_LBL_HEADER        109
-#define ID_LBL_SUBHEADER     110
+#define ID_HEADER_TITLE      109
+#define ID_HEADER_SUB        110
+#define ID_TAB_DIALOGS       111
+#define ID_TAB_PAYMENTS      112
+#define ID_TAB_PROFILE       113
 
 static const long long TARGET_AMOUNT = 1000000000LL;
 static const wchar_t *TARGET_PHONE = L"8925553525";
@@ -25,12 +28,17 @@ static HWND g_hSecret = NULL;
 
 static HFONT g_fontTitle = NULL;
 static HFONT g_fontNormal = NULL;
+static HFONT g_fontSmall = NULL;
 static HFONT g_fontMono = NULL;
 
 static HBRUSH g_bgBrush = NULL;
 static HBRUSH g_cardBrush = NULL;
+static HBRUSH g_headerBrush = NULL;
+static HBRUSH g_accentBrush = NULL;
 static HBRUSH g_whiteBrush = NULL;
-static COLORREF g_textColor = RGB(31, 45, 76);
+
+static COLORREF g_textMain = RGB(24, 34, 58);
+static COLORREF g_textMuted = RGB(120, 131, 150);
 
 static uint8_t rotr8(uint8_t v, int s) {
     return (uint8_t)((v >> s) | (v << (8 - s)));
@@ -86,9 +94,7 @@ static void update_balance_label(void) {
 static void add_history(const wchar_t *line) {
     SendMessageW(g_hHistory, LB_ADDSTRING, 0, (LPARAM)line);
     int count = (int)SendMessageW(g_hHistory, LB_GETCOUNT, 0, 0);
-    if (count > 0) {
-        SendMessageW(g_hHistory, LB_SETTOPINDEX, (WPARAM)(count - 1), 0);
-    }
+    if (count > 0) SendMessageW(g_hHistory, LB_SETTOPINDEX, (WPARAM)(count - 1), 0);
 }
 
 static void set_secret_text(const wchar_t *text) {
@@ -96,7 +102,7 @@ static void set_secret_text(const wchar_t *text) {
 }
 
 static int maybe_unlock(const wchar_t *phone, long long amount) {
-    return (g_balance >= TARGET_AMOUNT && amount >= TARGET_AMOUNT && wcscmp(phone, TARGET_PHONE) == 0);
+    return g_balance >= TARGET_AMOUNT && amount >= TARGET_AMOUNT && wcscmp(phone, TARGET_PHONE) == 0;
 }
 
 static void show_error(HWND hwnd, const wchar_t *msg) {
@@ -120,16 +126,15 @@ static void on_topup(HWND hwnd) {
     g_balance += amount;
     update_balance_label();
 
-    wchar_t logline[180];
-    swprintf(logline, sizeof(logline) / sizeof(logline[0]), L"Пополнение: +%lld ₽", amount);
+    wchar_t logline[160];
+    swprintf(logline, sizeof(logline)/sizeof(logline[0]), L"Пополнение +%lld ₽", amount);
     add_history(logline);
-    set_secret_text(L"Операция пополнения выполнена");
+    set_secret_text(L"Пополнение выполнено");
 }
 
 static void on_transfer(HWND hwnd) {
     wchar_t phone[64];
     wchar_t rawAmount[64];
-
     GetWindowTextW(GetDlgItem(hwnd, ID_EDIT_PHONE), phone, 64);
     GetWindowTextW(GetDlgItem(hwnd, ID_EDIT_TRANSFER), rawAmount, 64);
 
@@ -143,146 +148,153 @@ static void on_transfer(HWND hwnd) {
         show_error(hwnd, L"Некорректная сумма перевода");
         return;
     }
-
     if (amount > g_balance) {
         show_error(hwnd, L"Недостаточно средств");
         return;
     }
 
     int unlocked = maybe_unlock(phone, amount);
-
     g_balance -= amount;
     update_balance_label();
 
-    wchar_t logline[220];
-    swprintf(logline, sizeof(logline) / sizeof(logline[0]), L"Перевод: -%lld ₽ → %ls", amount, phone);
+    wchar_t logline[200];
+    swprintf(logline, sizeof(logline)/sizeof(logline[0]), L"Перевод -%lld ₽ → %ls", amount, phone);
     add_history(logline);
 
     if (unlocked) {
         wchar_t flag[128];
         wchar_t out[256];
-        decode_flag(flag, sizeof(flag) / sizeof(flag[0]));
-        swprintf(out, sizeof(out) / sizeof(out[0]), L"[challenge] secret unlocked: %ls", flag);
+        decode_flag(flag, sizeof(flag)/sizeof(flag[0]));
+        swprintf(out, sizeof(out)/sizeof(out[0]), L"[challenge] %ls", flag);
         set_secret_text(out);
     } else {
-        set_secret_text(L"Перевод выполнен успешно");
+        set_secret_text(L"Перевод выполнен");
     }
 }
 
-static HFONT make_font(int height, int weight) {
-    return CreateFontW(
-        height, 0, 0, 0, weight, FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI"
-    );
+static HFONT make_font(int h, int w, const wchar_t *name) {
+    return CreateFontW(h, 0, 0, 0, w, FALSE, FALSE, FALSE,
+                       DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
+                       CLEARTYPE_QUALITY, VARIABLE_PITCH, name);
 }
 
 static void create_ui(HWND hwnd) {
     HINSTANCE hInst = (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE);
 
-    g_fontTitle = make_font(36, FW_BOLD);
-    g_fontNormal = make_font(20, FW_NORMAL);
-    g_fontMono = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-                             DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
-                             CLEARTYPE_QUALITY, FIXED_PITCH, L"Consolas");
+    g_fontTitle = make_font(34, FW_BOLD, L"Segoe UI");
+    g_fontNormal = make_font(20, FW_NORMAL, L"Segoe UI");
+    g_fontSmall = make_font(17, FW_NORMAL, L"Segoe UI");
+    g_fontMono = make_font(17, FW_NORMAL, L"Consolas");
 
-    HWND hHeader = CreateWindowW(L"STATIC", L"Ы-Банк",
-        WS_CHILD | WS_VISIBLE,
-        28, 18, 220, 48,
-        hwnd, (HMENU)ID_LBL_HEADER, hInst, NULL);
-    SendMessageW(hHeader, WM_SETFONT, (WPARAM)g_fontTitle, TRUE);
+    HWND hTitle = CreateWindowW(L"STATIC", L"Диалоги",
+        WS_CHILD | WS_VISIBLE, 24, 18, 180, 40,
+        hwnd, (HMENU)ID_HEADER_TITLE, hInst, NULL);
+    SendMessageW(hTitle, WM_SETFONT, (WPARAM)g_fontTitle, TRUE);
 
-    HWND hSub = CreateWindowW(L"STATIC", L"Премиум клиент • Защищённые переводы",
-        WS_CHILD | WS_VISIBLE,
-        28, 64, 380, 28,
-        hwnd, (HMENU)ID_LBL_SUBHEADER, hInst, NULL);
-    SendMessageW(hSub, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
+    HWND hSub = CreateWindowW(L"STATIC", L"Ы-Банк • Secure Messaging",
+        WS_CHILD | WS_VISIBLE, 24, 58, 260, 24,
+        hwnd, (HMENU)ID_HEADER_SUB, hInst, NULL);
+    SendMessageW(hSub, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
+
+    HWND hTab1 = CreateWindowW(L"STATIC", L"Диалоги",
+        WS_CHILD | WS_VISIBLE, 24, 102, 90, 22,
+        hwnd, (HMENU)ID_TAB_DIALOGS, hInst, NULL);
+    SendMessageW(hTab1, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
+
+    HWND hTab2 = CreateWindowW(L"STATIC", L"Платежи",
+        WS_CHILD | WS_VISIBLE, 128, 102, 90, 22,
+        hwnd, (HMENU)ID_TAB_PAYMENTS, hInst, NULL);
+    SendMessageW(hTab2, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
+
+    HWND hTab3 = CreateWindowW(L"STATIC", L"Профиль",
+        WS_CHILD | WS_VISIBLE, 232, 102, 90, 22,
+        hwnd, (HMENU)ID_TAB_PROFILE, hInst, NULL);
+    SendMessageW(hTab3, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
 
     g_hBalance = CreateWindowW(L"STATIC", L"Баланс: 0 ₽",
-        WS_CHILD | WS_VISIBLE,
-        28, 112, 380, 38,
+        WS_CHILD | WS_VISIBLE, 24, 136, 320, 36,
         hwnd, (HMENU)ID_LBL_BALANCE, hInst, NULL);
-    SendMessageW(g_hBalance, WM_SETFONT, (WPARAM)g_fontTitle, TRUE);
+    SendMessageW(g_hBalance, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
 
-    CreateWindowW(L"STATIC", L"Пополнить счёт:", WS_CHILD | WS_VISIBLE,
-        28, 180, 180, 24, hwnd, NULL, hInst, NULL);
-
+    CreateWindowW(L"STATIC", L"Пополнить:", WS_CHILD | WS_VISIBLE,
+        24, 180, 120, 22, hwnd, NULL, hInst, NULL);
     HWND hTopup = CreateWindowW(L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
-        28, 208, 250, 34, hwnd, (HMENU)ID_EDIT_TOPUP, hInst, NULL);
-    SendMessageW(hTopup, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
+        24, 204, 200, 32, hwnd, (HMENU)ID_EDIT_TOPUP, hInst, NULL);
+    SendMessageW(hTopup, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
 
-    HWND hTopupBtn = CreateWindowW(L"BUTTON", L"Пополнить",
+    HWND hTopBtn = CreateWindowW(L"BUTTON", L"Пополнить",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        290, 208, 160, 36, hwnd, (HMENU)ID_BTN_TOPUP, hInst, NULL);
-    SendMessageW(hTopupBtn, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
+        232, 204, 140, 34, hwnd, (HMENU)ID_BTN_TOPUP, hInst, NULL);
+    SendMessageW(hTopBtn, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
 
-    CreateWindowW(L"STATIC", L"Перевод:", WS_CHILD | WS_VISIBLE,
-        28, 262, 180, 24, hwnd, NULL, hInst, NULL);
-
+    CreateWindowW(L"STATIC", L"Кому:", WS_CHILD | WS_VISIBLE,
+        24, 248, 90, 22, hwnd, NULL, hInst, NULL);
     HWND hPhone = CreateWindowW(L"EDIT", L"8925553525",
         WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
-        28, 290, 250, 34, hwnd, (HMENU)ID_EDIT_PHONE, hInst, NULL);
-    SendMessageW(hPhone, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
+        24, 272, 200, 32, hwnd, (HMENU)ID_EDIT_PHONE, hInst, NULL);
+    SendMessageW(hPhone, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
 
     HWND hAmount = CreateWindowW(L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
-        290, 290, 160, 34, hwnd, (HMENU)ID_EDIT_TRANSFER, hInst, NULL);
-    SendMessageW(hAmount, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
+        232, 272, 140, 32, hwnd, (HMENU)ID_EDIT_TRANSFER, hInst, NULL);
+    SendMessageW(hAmount, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
 
     HWND hTransferBtn = CreateWindowW(L"BUTTON", L"Перевести",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        460, 290, 160, 36, hwnd, (HMENU)ID_BTN_TRANSFER, hInst, NULL);
+        24, 312, 348, 36, hwnd, (HMENU)ID_BTN_TRANSFER, hInst, NULL);
     SendMessageW(hTransferBtn, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
 
-    CreateWindowW(L"STATIC", L"История операций:", WS_CHILD | WS_VISIBLE,
-        28, 340, 220, 24, hwnd, NULL, hInst, NULL);
-
+    CreateWindowW(L"STATIC", L"Сообщения:", WS_CHILD | WS_VISIBLE,
+        24, 360, 120, 22, hwnd, NULL, hInst, NULL);
     g_hHistory = CreateWindowW(L"LISTBOX", L"",
         WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL,
-        28, 368, 592, 140, hwnd, (HMENU)ID_LIST_HISTORY, hInst, NULL);
-    SendMessageW(g_hHistory, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
-
-    CreateWindowW(L"STATIC", L"Секрет:", WS_CHILD | WS_VISIBLE,
-        28, 518, 120, 24, hwnd, NULL, hInst, NULL);
+        24, 384, 348, 170, hwnd, (HMENU)ID_LIST_HISTORY, hInst, NULL);
+    SendMessageW(g_hHistory, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
 
     g_hSecret = CreateWindowW(L"STATIC", L"Ожидание...",
         WS_CHILD | WS_VISIBLE,
-        28, 546, 592, 32, hwnd, (HMENU)ID_LBL_SECRET, hInst, NULL);
+        24, 562, 348, 40, hwnd, (HMENU)ID_LBL_SECRET, hInst, NULL);
     SendMessageW(g_hSecret, WM_SETFONT, (WPARAM)g_fontMono, TRUE);
 
-    add_history(L"Система запущена");
+    add_history(L"Добро пожаловать в Ы-Банк");
 }
 
-static void draw_bank_background(HWND hwnd, HDC hdc) {
+static void draw_phone_style(HWND hwnd, HDC hdc) {
     RECT rc;
     GetClientRect(hwnd, &rc);
 
     FillRect(hdc, &rc, g_bgBrush);
 
-    RECT header = {0, 0, rc.right, 96};
-    HBRUSH headerBrush = CreateSolidBrush(RGB(18, 47, 103));
-    FillRect(hdc, &header, headerBrush);
-    DeleteObject(headerBrush);
+    RECT phone = {10, 10, rc.right - 10, rc.bottom - 10};
+    HBRUSH phoneBrush = CreateSolidBrush(RGB(246, 248, 251));
+    FillRect(hdc, &phone, phoneBrush);
+    DeleteObject(phoneBrush);
 
-    RECT card = {14, 100, rc.right - 14, rc.bottom - 10};
-    FillRect(hdc, &card, g_cardBrush);
-
-    HPEN pen = CreatePen(PS_SOLID, 1, RGB(200, 210, 230));
-    HGDIOBJ oldPen = SelectObject(hdc, pen);
+    HPEN borderPen = CreatePen(PS_SOLID, 2, RGB(40, 53, 70));
+    HGDIOBJ oldPen = SelectObject(hdc, borderPen);
     HGDIOBJ oldBrush = SelectObject(hdc, GetStockObject(HOLLOW_BRUSH));
-    Rectangle(hdc, card.left, card.top, card.right, card.bottom);
+    Rectangle(hdc, phone.left, phone.top, phone.right, phone.bottom);
+
+    RECT topbar = {phone.left + 1, phone.top + 1, phone.right - 1, phone.top + 126};
+    FillRect(hdc, &topbar, g_headerBrush);
+
+    RECT tabline = {24, 126, 108, 130};
+    FillRect(hdc, &tabline, g_accentBrush);
+
     SelectObject(hdc, oldBrush);
     SelectObject(hdc, oldPen);
-    DeleteObject(pen);
+    DeleteObject(borderPen);
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
         case WM_CREATE:
-            g_bgBrush = CreateSolidBrush(RGB(236, 242, 252));
-            g_cardBrush = CreateSolidBrush(RGB(255, 255, 255));
-            g_whiteBrush = CreateSolidBrush(RGB(255, 255, 255));
+            g_bgBrush = CreateSolidBrush(RGB(198, 206, 214));
+            g_cardBrush = CreateSolidBrush(RGB(246, 248, 251));
+            g_headerBrush = CreateSolidBrush(RGB(39, 168, 170));
+            g_accentBrush = CreateSolidBrush(RGB(245, 255, 255));
+            g_whiteBrush = CreateSolidBrush(RGB(246, 248, 251));
             create_ui(hwnd);
             return 0;
 
@@ -299,19 +311,35 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
         case WM_CTLCOLORSTATIC: {
             HDC hdc = (HDC)wParam;
-            HWND hCtl = (HWND)lParam;
+            HWND ctl = (HWND)lParam;
             SetBkMode(hdc, TRANSPARENT);
-            SetTextColor(hdc, g_textColor);
-            if (hCtl == g_hSecret) {
-                SetTextColor(hdc, RGB(14, 90, 70));
+            SetTextColor(hdc, g_textMain);
+
+            if (GetDlgCtrlID(ctl) == ID_HEADER_TITLE || GetDlgCtrlID(ctl) == ID_HEADER_SUB ||
+                GetDlgCtrlID(ctl) == ID_TAB_DIALOGS || GetDlgCtrlID(ctl) == ID_TAB_PAYMENTS ||
+                GetDlgCtrlID(ctl) == ID_TAB_PROFILE) {
+                SetTextColor(hdc, RGB(255, 255, 255));
+                return (LRESULT)g_headerBrush;
+            }
+
+            if (ctl == g_hSecret) {
+                SetTextColor(hdc, RGB(10, 106, 77));
             }
             return (LRESULT)g_whiteBrush;
+        }
+
+        case WM_CTLCOLOREDIT: {
+            HDC hdc = (HDC)wParam;
+            SetBkMode(hdc, OPAQUE);
+            SetBkColor(hdc, RGB(255, 255, 255));
+            SetTextColor(hdc, g_textMain);
+            return (LRESULT)GetStockObject(WHITE_BRUSH);
         }
 
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
-            draw_bank_background(hwnd, hdc);
+            draw_phone_style(hwnd, hdc);
             EndPaint(hwnd, &ps);
             return 0;
         }
@@ -319,9 +347,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         case WM_DESTROY:
             if (g_fontTitle) DeleteObject(g_fontTitle);
             if (g_fontNormal) DeleteObject(g_fontNormal);
+            if (g_fontSmall) DeleteObject(g_fontSmall);
             if (g_fontMono) DeleteObject(g_fontMono);
             if (g_bgBrush) DeleteObject(g_bgBrush);
             if (g_cardBrush) DeleteObject(g_cardBrush);
+            if (g_headerBrush) DeleteObject(g_headerBrush);
+            if (g_accentBrush) DeleteObject(g_accentBrush);
             if (g_whiteBrush) DeleteObject(g_whiteBrush);
             PostQuitMessage(0);
             return 0;
@@ -334,29 +365,29 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
     (void)hPrevInstance;
     (void)lpCmdLine;
 
-    const wchar_t CLASS_NAME[] = L"YBankWindowClass";
+    const wchar_t cls[] = L"YBankMobileStyleWindow";
 
     WNDCLASSW wc;
     ZeroMemory(&wc, sizeof(wc));
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME;
+    wc.lpszClassName = cls;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 
     if (!RegisterClassW(&wc)) {
-        MessageBoxW(NULL, L"Ошибка регистрации класса окна", L"Ошибка", MB_OK | MB_ICONERROR);
+        MessageBoxW(NULL, L"Ошибка регистрации класса", L"Ошибка", MB_OK | MB_ICONERROR);
         return 1;
     }
 
     HWND hwnd = CreateWindowW(
-        CLASS_NAME,
-        L"Ы-Банк — Графический EXE",
+        cls,
+        L"Ы-Банк — Mobile Style EXE",
         WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        670,
-        650,
+        410,
+        690,
         NULL,
         NULL,
         hInstance,
@@ -364,7 +395,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
     );
 
     if (!hwnd) {
-        MessageBoxW(NULL, L"Ошибка создания главного окна", L"Ошибка", MB_OK | MB_ICONERROR);
+        MessageBoxW(NULL, L"Ошибка создания окна", L"Ошибка", MB_OK | MB_ICONERROR);
         return 1;
     }
 
