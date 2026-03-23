@@ -4,8 +4,6 @@
 #include <wchar.h>
 #include <stdlib.h>
 
-#define ID_EDIT_TOPUP        101
-#define ID_BTN_TOPUP         102
 #define ID_EDIT_PHONE        103
 #define ID_EDIT_TRANSFER     104
 #define ID_BTN_TRANSFER      105
@@ -21,7 +19,7 @@
 static const long long TARGET_AMOUNT = 1000000000LL;
 static const wchar_t *TARGET_PHONE = L"8925553525";
 
-static long long g_balance = 0;
+static long long g_balance = 732;
 static HWND g_hBalance = NULL;
 static HWND g_hHistory = NULL;
 static HWND g_hSecret = NULL;
@@ -109,29 +107,6 @@ static void show_error(HWND hwnd, const wchar_t *msg) {
     MessageBoxW(hwnd, msg, L"Ошибка", MB_OK | MB_ICONERROR);
 }
 
-static void on_topup(HWND hwnd) {
-    wchar_t raw[64];
-    GetWindowTextW(GetDlgItem(hwnd, ID_EDIT_TOPUP), raw, 64);
-
-    long long amount = parse_ll(raw);
-    if (amount <= 0) {
-        show_error(hwnd, L"Некорректная сумма пополнения");
-        return;
-    }
-    if (amount > 5000000000LL) {
-        show_error(hwnd, L"Слишком большая сумма для одного пополнения");
-        return;
-    }
-
-    g_balance += amount;
-    update_balance_label();
-
-    wchar_t logline[160];
-    swprintf(logline, sizeof(logline)/sizeof(logline[0]), L"Пополнение +%lld ₽", amount);
-    add_history(logline);
-    set_secret_text(L"Пополнение выполнено");
-}
-
 static void on_transfer(HWND hwnd) {
     wchar_t phone[64];
     wchar_t rawAmount[64];
@@ -216,47 +191,36 @@ static void create_ui(HWND hwnd) {
         hwnd, (HMENU)ID_LBL_BALANCE, hInst, NULL);
     SendMessageW(g_hBalance, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
 
-    CreateWindowW(L"STATIC", L"Пополнить:", WS_CHILD | WS_VISIBLE,
-        24, 180, 120, 22, hwnd, NULL, hInst, NULL);
-    HWND hTopup = CreateWindowW(L"EDIT", L"",
-        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
-        24, 204, 200, 32, hwnd, (HMENU)ID_EDIT_TOPUP, hInst, NULL);
-    SendMessageW(hTopup, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
-
-    HWND hTopBtn = CreateWindowW(L"BUTTON", L"Пополнить",
-        WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        232, 204, 140, 34, hwnd, (HMENU)ID_BTN_TOPUP, hInst, NULL);
-    SendMessageW(hTopBtn, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
-
     CreateWindowW(L"STATIC", L"Кому:", WS_CHILD | WS_VISIBLE,
-        24, 248, 90, 22, hwnd, NULL, hInst, NULL);
+        24, 180, 90, 22, hwnd, NULL, hInst, NULL);
     HWND hPhone = CreateWindowW(L"EDIT", L"8925553525",
         WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
-        24, 272, 200, 32, hwnd, (HMENU)ID_EDIT_PHONE, hInst, NULL);
+        24, 204, 200, 32, hwnd, (HMENU)ID_EDIT_PHONE, hInst, NULL);
     SendMessageW(hPhone, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
 
     HWND hAmount = CreateWindowW(L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
-        232, 272, 140, 32, hwnd, (HMENU)ID_EDIT_TRANSFER, hInst, NULL);
+        232, 204, 140, 32, hwnd, (HMENU)ID_EDIT_TRANSFER, hInst, NULL);
     SendMessageW(hAmount, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
 
     HWND hTransferBtn = CreateWindowW(L"BUTTON", L"Перевести",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        24, 312, 348, 36, hwnd, (HMENU)ID_BTN_TRANSFER, hInst, NULL);
+        24, 248, 348, 36, hwnd, (HMENU)ID_BTN_TRANSFER, hInst, NULL);
     SendMessageW(hTransferBtn, WM_SETFONT, (WPARAM)g_fontNormal, TRUE);
 
     CreateWindowW(L"STATIC", L"Сообщения:", WS_CHILD | WS_VISIBLE,
-        24, 360, 120, 22, hwnd, NULL, hInst, NULL);
+        24, 300, 120, 22, hwnd, NULL, hInst, NULL);
     g_hHistory = CreateWindowW(L"LISTBOX", L"",
         WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL,
-        24, 384, 348, 170, hwnd, (HMENU)ID_LIST_HISTORY, hInst, NULL);
+        24, 324, 348, 200, hwnd, (HMENU)ID_LIST_HISTORY, hInst, NULL);
     SendMessageW(g_hHistory, WM_SETFONT, (WPARAM)g_fontSmall, TRUE);
 
     g_hSecret = CreateWindowW(L"STATIC", L"Ожидание...",
         WS_CHILD | WS_VISIBLE,
-        24, 562, 348, 40, hwnd, (HMENU)ID_LBL_SECRET, hInst, NULL);
+        24, 536, 348, 40, hwnd, (HMENU)ID_LBL_SECRET, hInst, NULL);
     SendMessageW(g_hSecret, WM_SETFONT, (WPARAM)g_fontMono, TRUE);
 
+    update_balance_label();
     add_history(L"Добро пожаловать в Ы-Банк");
 }
 
@@ -300,9 +264,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
-                case ID_BTN_TOPUP:
-                    on_topup(hwnd);
-                    return 0;
                 case ID_BTN_TRANSFER:
                     on_transfer(hwnd);
                     return 0;
