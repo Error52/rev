@@ -25,7 +25,7 @@ win-exe: $(SRC)
 
 win-gui-exe: $(GUI_SRC)
 	@if command -v $(MINGW_CC) >/dev/null 2>&1; then \
-		$(MINGW_CC) $(CFLAGS) -mwindows $(GUI_SRC) -o $(WIN_GUI_OUT); \
+		$(MINGW_CC) $(CFLAGS) -mwindows -municode $(GUI_SRC) -o $(WIN_GUI_OUT); \
 		echo "Built Windows GUI executable: $(WIN_GUI_OUT)"; \
 	else \
 		echo "Error: $(MINGW_CC) not found. Install MinGW-w64 cross-compiler to build GUI .exe"; \

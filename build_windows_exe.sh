@@ -8,7 +8,7 @@ CFLAGS="-std=c11 -O2 -Wall -Wextra -pedantic"
 LDFLAGS=""
 
 if [[ "$SRC" == "ybank_win_gui.c" ]]; then
-  LDFLAGS="-mwindows"
+  LDFLAGS="-mwindows -municode"
 fi
 
 if ! command -v "$MINGW_CC" >/dev/null 2>&1; then

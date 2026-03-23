@@ -1,6 +1,7 @@
 # Reverse task: Ы-Банк
 
 Главная цель теперь: **Windows `.exe` с графическим интерфейсом (не CLI и не WEB)**.
+GUI реализован на WinAPI в Unicode (`wWinMain`, wide-строки), чтобы не было «кракозябр» в русском тексте.
 
 ## Что есть в проекте
 - `ybank_win_gui.c` — WinAPI GUI-приложение для сборки в `ybank_gui.exe`
@@ -17,7 +18,7 @@ make win-gui-exe
 ./build_windows_exe.sh ybank_win_gui.c ybank_gui.exe
 ```
 
-> Нужен MinGW-w64 (`x86_64-w64-mingw32-gcc`).
+> Нужен MinGW-w64 (`x86_64-w64-mingw32-gcc`). Сборка GUI идет с флагами `-mwindows -municode`.
 
 ## Логика GUI-приложения
 В графическом `.exe` есть:
