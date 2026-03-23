@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ы-Банк — Клиент</title>
+  <link rel="stylesheet" href="bank_gui.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">Ы</span>
+        <div>
+          <h1>Ы-Банк</h1>
+          <p>Безопасный клиент (демо reverse-task)</p>
+        </div>
+      </div>
+      <div class="top-meta">
+        <span id="clock"></span>
+        <button id="themeBtn" class="ghost-btn">Сменить тему</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card balance-card">
+        <h2>Ваш счёт</h2>
+        <p class="amount" id="balance">0 ₽</p>
+        <div class="quick-actions">
+          <button class="chip" data-fill="1000">+1 000</button>
+          <button class="chip" data-fill="1000000">+1 000 000</button>
+          <button class="chip" data-fill="1000000000">+1 000 000 000</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Пополнение</h2>
+        <label for="topupAmount">Сумма</label>
+        <input id="topupAmount" type="number" min="1" placeholder="Например 10000" />
+        <button id="topupBtn" class="primary">Пополнить</button>
+      </section>
+
+      <section class="card">
+        <h2>Перевод</h2>
+        <label for="transferPhone">Счёт / Телефон</label>
+        <input id="transferPhone" type="text" placeholder="8925553525" />
+
+        <label for="transferAmount">Сумма</label>
+        <input id="transferAmount" type="number" min="1" placeholder="Сумма перевода" />
+
+        <button id="transferBtn" class="primary">Перевести</button>
+      </section>
+
+      <section class="card logs-card">
+        <h2>История операций</h2>
+        <ul id="history"></ul>
+      </section>
+
+      <section class="card secret-card">
+        <h2>Секрет challenge</h2>
+        <p>Флаг хранится в зашифрованном виде и показывается только при особом условии.</p>
+        <pre id="secretOutput">ожидание...</pre>
+      </section>
+    </main>
+  </div>
+
+  <template id="logTemplate">
+    <li>
+      <span class="time"></span>
+      <span class="text"></span>
+    </li>
+  </template>
+
+  <script src="bank_gui.js"></script>
+</body>
+</html>
