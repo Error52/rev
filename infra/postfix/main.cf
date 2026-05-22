@@ -1,0 +1,7 @@
+myhostname = mail.example.com
+myorigin = /etc/mailname
+mydestination = localhost
+home_mailbox = Maildir/
+smtpd_sasl_auth_enable = yes
+smtpd_tls_security_level = may
+virtual_transport = lmtp:unix:private/dovecot-lmtp

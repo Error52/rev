@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Webmail</title><link rel='stylesheet' href='/static/css/style.css'></head>
+<body><div class='layout'>
+<aside class='sidebar'>
+<a href='?folder=INBOX'>Inbox</a><a href='?folder=SENT'>Sent</a><a href='?folder=DRAFTS'>Drafts</a><a href='?folder=SPAM'>Spam</a><a href='?folder=TRASH'>Trash</a>
+</aside>
+<section><header><form><input name='q' placeholder='search subject/sender/content'><input type='hidden' name='folder' value='{{ folder }}'></form></header>
+<ul>{% for m in messages %}<li><strong>{{ m.subject|default:'(no subject)' }}</strong> — {{ m.sender }}{% if m.unread %} [NEW]{% endif %}</li>{% empty %}<li>No messages.</li>{% endfor %}</ul>
+</section></div>
+<script>
+const ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws/notifications/');
+ws.onmessage=(e)=>console.log('notification',e.data)
+</script></body></html>
