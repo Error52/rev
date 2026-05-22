@@ -6,4 +6,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend /app
 COPY templates /app/templates
 COPY static /app/static
-CMD ["gunicorn","-k","uvicorn.workers.UvicornWorker","config.asgi:application","--bind","0.0.0.0:8000"]
+CMD ["python","-m","gunicorn","-k","uvicorn.workers.UvicornWorker","config.asgi:application","--bind","0.0.0.0:8000"]
