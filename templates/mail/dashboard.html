@@ -1,12 +1,48 @@
-<!doctype html><html><head><meta charset='utf-8'><title>Webmail</title><link rel='stylesheet' href='/static/css/style.css'></head>
-<body><div class='layout'>
-<aside class='sidebar'>
-<a href='?folder=INBOX'>Inbox</a><a href='?folder=SENT'>Sent</a><a href='?folder=DRAFTS'>Drafts</a><a href='?folder=SPAM'>Spam</a><a href='?folder=TRASH'>Trash</a>
-</aside>
-<section><header><form><input name='q' placeholder='search subject/sender/content'><input type='hidden' name='folder' value='{{ folder }}'></form></header>
-<ul>{% for m in messages %}<li><strong>{{ m.subject|default:'(no subject)' }}</strong> — {{ m.sender }}{% if m.unread %} [NEW]{% endif %}</li>{% empty %}<li>No messages.</li>{% endfor %}</ul>
-</section></div>
-<script>
-const ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws/notifications/');
-ws.onmessage=(e)=>console.log('notification',e.data)
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Industrial-Hell Mail :: Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="scanlines app-body">
+<div class="noise"></div>
+<div class="layout app-layout">
+  <aside class="sidebar">
+    <div class="brand">IHM://NODE</div>
+    <a href="?folder=INBOX" class="active">Inbox</a>
+    <a href="?folder=SENT">Sent</a>
+    <a href="?folder=DRAFTS">Drafts</a>
+    <a href="?folder=SPAM">Spam</a>
+    <a href="?folder=TRASH">Trash</a>
+    <a href="#">Starred</a>
+    <a href="#">Settings</a>
+  </aside>
+
+  <section class="mail-pane">
+    <header class="topbar">
+      <form class="searchbar">
+        <input name="q" placeholder="search subject/sender/content">
+        <input type="hidden" name="folder" value="{{ folder }}">
+      </form>
+      <div class="top-actions">
+        <button type="button">+ Compose</button>
+        <span class="badge">3 alerts</span>
+      </div>
+    </header>
+
+    <section class="mail-list">
+      {% for m in messages %}
+      <article class="mail-item {% if m.unread %}unread{% endif %}">
+        <h4>{{ m.subject|default:'(no subject)' }}</h4>
+        <p>{{ m.sender }}</p>
+      </article>
+      {% empty %}
+      <article class="mail-item"><h4>No messages.</h4></article>
+      {% endfor %}
+    </section>
+  </section>
+</div>
+</body>
+</html>
