@@ -1,15 +1,22 @@
 # Industrial-Hell Mail — Frontend Preview Only
 
-This repository now contains **frontend-only UI preview** assets for Industrial-Hell Mail.
+Теперь это полностью статический frontend-сайт для просмотра дизайна.
 
-## Included
-- Login page template:
-  - `templates/auth/login.html`
-- Dashboard preview template:
-  - `templates/mail/dashboard.html`
-- Shared styles:
-  - `static/css/style.css`
+## Быстрый запуск
 
-## Notes
-- All backend and infrastructure code has been removed in this iteration.
-- The current scope is visual design and layout preview only.
+### Вариант 1: открыть напрямую
+- Откройте `index.html` в браузере.
+
+### Вариант 2: локальный HTTP сервер (рекомендуется)
+```bash
+python3 -m http.server 8080
+```
+После этого откройте: `http://localhost:8080`
+
+## Страницы
+- `index.html` — login screen
+- `dashboard.html` — webmail dashboard preview
+
+## Структура
+- `static/css/style.css` — все стили
+- `templates/auth/login.html` и `templates/mail/dashboard.html` — дубли шаблонов для удобства
