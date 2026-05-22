@@ -1,0 +1,16 @@
+Django==5.1.5
+djangorestframework==3.15.2
+django-filter==24.3
+django-redis==5.4.0
+channels==4.1.0
+channels-redis==4.2.0
+celery==5.4.0
+redis==5.1.1
+psycopg[binary]==3.2.3
+python-dotenv==1.0.1
+imapclient==3.0.1
+bleach==6.2.0
+django-ratelimit==4.1.0
+
+gunicorn==23.0.0
+uvicorn==0.34.0
